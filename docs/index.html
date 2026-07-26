@@ -1,1 +1,1415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸运大转盘</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 30%, #0f3460 60%, #1a1a2e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                radial-gradient(2px 2px at 20% 30%, rgba(255, 255, 255, 0.3), transparent),
+                radial-gradient(2px 2px at 40% 70%, rgba(255, 255, 255, 0.2), transparent),
+                radial-gradient(1px 1px at 60% 20%, rgba(255, 255, 255, 0.4), transparent),
+                radial-gradient(2px 2px at 80% 50%, rgba(255, 255, 255, 0.25), transparent),
+                radial-gradient(1px 1px at 10% 60%, rgba(255, 255, 255, 0.35), transparent),
+                radial-gradient(1px 1px at 70% 80%, rgba(255, 255, 255, 0.3), transparent),
+                radial-gradient(2px 2px at 90% 10%, rgba(255, 255, 255, 0.2), transparent),
+                radial-gradient(1px 1px at 50% 45%, rgba(255, 255, 255, 0.3), transparent);
+        }
+
+        h1 {
+            color: #fff;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 2px 2px 4px rgba(0, 0, 0, 0.4);
+            cursor: default;
+            user-select: none;
+            letter-spacing: 4px;
+            position: relative;
+            z-index: 1;
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%,
+            100% {
+                text-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 2px 2px 4px rgba(0, 0, 0, 0.4);
+            }
+            50% {
+                text-shadow: 0 0 35px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 180, 0, 0.5), 2px 2px 4px rgba(0, 0, 0, 0.4);
+            }
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 450px;
+            height: 450px;
+            z-index: 1;
+            filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.25));
+        }
+
+        .pointer {
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 42px solid #ff4757;
+            z-index: 10;
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 8px rgba(255, 71, 87, 0.6));
+            transition: filter 0.3s ease;
+        }
+
+        .pointer::after {
+            content: '';
+            position: absolute;
+            top: -42px;
+            left: -6px;
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #fff, 0 0 20px rgba(255, 255, 255, 0.8);
+            animation: pointerGlow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pointerGlow {
+            0%,
+            100% {
+                box-shadow: 0 0 10px #fff, 0 0 20px rgba(255, 255, 255, 0.8);
+            }
+            50% {
+                box-shadow: 0 0 20px #fff, 0 0 40px rgba(255, 255, 255, 1), 0 0 60px rgba(255, 200, 0, 0.7);
+            }
+        }
+
+        #wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 8px solid #fff;
+            box-shadow:
+                0 0 30px rgba(0, 0, 0, 0.3),
+                0 0 60px rgba(255, 215, 0, 0.2),
+                inset 0 0 20px rgba(0, 0, 0, 0.1);
+            transition: transform 5s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+        }
+
+        .wheel-container.spinning #wheel {
+            box-shadow:
+                0 0 40px rgba(0, 0, 0, 0.35),
+                0 0 80px rgba(255, 215, 0, 0.35),
+                0 0 120px rgba(255, 180, 0, 0.2),
+                inset 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .center-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #ff6b6b, #ee5a52);
+            color: white;
+            border: 4px solid #fff;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 5;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 107, 107, 0.4);
+            transition: all 0.3s ease;
+            letter-spacing: 2px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+
+        .center-btn:hover:not(:disabled) {
+            transform: translate(-50%, -50%) scale(1.08);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4), 0 0 45px rgba(255, 107, 107, 0.6);
+            background: linear-gradient(145deg, #ff7b7b, #ff5a52);
+        }
+
+        .center-btn:active:not(:disabled) {
+            transform: translate(-50%, -50%) scale(0.95);
+            transition: all 0.1s ease;
+        }
+
+        .center-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+            background: linear-gradient(145deg, #999, #777);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            animation: pulseDisabled 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulseDisabled {
+            0%,
+            100% {
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            }
+            50% {
+                box-shadow: 0 4px 25px rgba(0, 0, 0, 0.5), 0 0 35px rgba(150, 150, 150, 0.3);
+            }
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px 40px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            min-width: 320px;
+            z-index: 1;
+            position: relative;
+            backdrop-filter: blur(10px);
+            transition: all 0.4s ease;
+        }
+
+        .result.win {
+            animation: resultPop 0.6s ease-out;
+            box-shadow: 0 8px 35px rgba(255, 215, 0, 0.4), 0 4px 20px rgba(0, 0, 0, 0.2);
+            border: 2px solid rgba(255, 215, 0, 0.5);
+        }
+
+        @keyframes resultPop {
+            0% {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .result img {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            object-fit: cover;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .result .prize-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+        }
+        .result .prize-label {
+            font-size: 0.8rem;
+            color: #999;
+            font-weight: normal;
+        }
+        .result .prize-name {
+            font-size: 1.5rem;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .admin-panel {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(3px);
+        }
+        .admin-panel.active {
+            display: flex;
+        }
+
+        .admin-content {
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            animation: modalIn 0.3s ease-out;
+        }
+
+        @keyframes modalIn {
+            from {
+                transform: scale(0.9) translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .admin-content h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+            background: none;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .close-btn:hover {
+            color: #333;
+            background: #f0f0f0;
+        }
+
+        .prize-list {
+            margin-bottom: 20px;
+        }
+
+        .prize-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            flex-wrap: wrap;
+        }
+        .prize-item:hover {
+            background: #eef1f5;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        .prize-item .preview-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+            background: #eee;
+            flex-shrink: 0;
+        }
+        .prize-item input[type="text"] {
+            flex: 2;
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            min-width: 80px;
+            transition: border-color 0.3s ease;
+        }
+        .prize-item input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .prize-item input[type="number"] {
+            width: 60px;
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: border-color 0.3s ease;
+        }
+        .prize-item input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .prize-item .img-url-input {
+            flex: 3;
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 12px;
+            min-width: 120px;
+            transition: border-color 0.3s ease;
+        }
+        .prize-item .img-url-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .prize-item label {
+            font-size: 12px;
+            color: #666;
+            min-width: 35px;
+            flex-shrink: 0;
+        }
+        .prize-item .delete-btn {
+            padding: 6px 10px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+        .prize-item .delete-btn:hover {
+            background: #e0333f;
+            box-shadow: 0 2px 8px rgba(255, 71, 87, 0.4);
+        }
+
+        .config-section {
+            padding: 14px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+        .config-section strong {
+            color: #333;
+            font-size: 14px;
+        }
+        .config-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .config-row label {
+            font-size: 13px;
+            color: #666;
+            white-space: nowrap;
+        }
+        .config-row input[type="number"] {
+            width: 70px;
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: border-color 0.3s ease;
+        }
+        .config-row input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .config-row .hint {
+            font-size: 12px;
+            color: #999;
+        }
+        .config-row .used-count {
+            font-weight: bold;
+            color: #ff4757;
+            font-size: 15px;
+            min-width: 20px;
+            text-align: center;
+        }
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        .btn-sm:active {
+            transform: scale(0.95);
+        }
+        .btn-reset {
+            background: #ff6b6b;
+            color: #fff;
+        }
+        .btn-reset:hover {
+            background: #e55a5a;
+            box-shadow: 0 3px 10px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5a6fd8;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-success {
+            background: #2ed573;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #26af60;
+            box-shadow: 0 4px 15px rgba(46, 213, 115, 0.4);
+        }
+        .btn-warning {
+            background: #ffa502;
+            color: white;
+        }
+        .btn-warning:hover {
+            background: #e69500;
+            box-shadow: 0 4px 15px rgba(255, 165, 2, 0.4);
+        }
+
+        .probability-info {
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+        .probability-info strong {
+            color: #333;
+        }
+        #totalWeight {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .tip {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .password-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(3px);
+        }
+        .password-modal.active {
+            display: flex;
+        }
+        .password-content {
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            animation: modalIn 0.3s ease-out;
+        }
+        .password-content h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .password-content input {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            width: 200px;
+            transition: border-color 0.3s ease;
+        }
+        .password-content input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        @media (max-width: 550px) {
+            .wheel-container {
+                width: 330px;
+                height: 330px;
+            }
+            h1 {
+                font-size: 1.6rem;
+                letter-spacing: 2px;
+            }
+            .center-btn {
+                width: 70px;
+                height: 70px;
+                font-size: 1rem;
+            }
+            .pointer {
+                border-left-width: 16px;
+                border-right-width: 16px;
+                border-top-width: 34px;
+                top: -6px;
+            }
+            .pointer::after {
+                top: -34px;
+                width: 10px;
+                height: 10px;
+            }
+            .result {
+                min-width: auto;
+                width: 90%;
+                font-size: 1.2rem;
+                padding: 15px 25px;
+                gap: 10px;
+            }
+            .result img {
+                width: 45px;
+                height: 45px;
+            }
+            .result .prize-name {
+                font-size: 1.2rem;
+            }
+            .admin-content {
+                padding: 20px;
+                width: 95%;
+            }
+            .prize-item {
+                gap: 4px;
+                padding: 8px;
+            }
+            .prize-item input[type="text"] {
+                font-size: 11px;
+                padding: 4px 6px;
+            }
+            .prize-item input[type="number"] {
+                width: 45px;
+                font-size: 11px;
+                padding: 4px 6px;
+            }
+            .prize-item .img-url-input {
+                font-size: 10px;
+                padding: 4px 6px;
+            }
+            .btn {
+                padding: 8px 14px;
+                font-size: 12px;
+            }
+            .config-row {
+                gap: 5px;
+            }
+            .config-row input[type="number"] {
+                width: 55px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            20% {
+                transform: translateX(-8px);
+            }
+            40% {
+                transform: translateX(8px);
+            }
+            60% {
+                transform: translateX(-5px);
+            }
+            80% {
+                transform: translateX(5px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 id="title">🎡 幸运大转盘</h1>
+
+    <div class="wheel-container" id="wheelContainer">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="450" height="450"></canvas>
+        <button class="center-btn" id="spinBtn">抽奖</button>
+    </div>
+
+    <div class="result" id="result">
+        <span>👆 点击中间按钮开始抽奖</span>
+    </div>
+
+    <!-- 管理面板 -->
+    <div class="admin-panel" id="adminPanel">
+        <div class="admin-content">
+            <button class="close-btn" onclick="closeAdmin()" title="关闭">×</button>
+            <h2>⚙️ 管理员设置</h2>
+
+            <div class="probability-info">
+                <strong>📊 概率说明：</strong>权重数值越大，中奖概率越高。设为0则永远抽不中。<br>
+                🖼️ 图片填网络图片链接（URL），不填则只显示文字。<br>
+                📈 当前总权重：<span id="totalWeight">0</span>
+            </div>
+
+            <div class="prize-list" id="prizeList"></div>
+
+            <!-- 抽奖次数限制配置（仅管理员可见） -->
+            <div class="config-section">
+                <strong>🔢 抽奖次数限制</strong>
+                <div class="config-row">
+                    <label>最大抽奖次数：</label>
+                    <input type="number" id="maxSpinsInput" value="0" min="0" step="1" onchange="onMaxSpinsChange()">
+                    <span class="hint">(0 = 不限制)</span>
+                </div>
+                <div class="config-row">
+                    <span>当前已使用：</span>
+                    <span class="used-count" id="usedSpinsDisplay">0</span>
+                    <span style="font-size:13px;color:#666;">次</span>
+                    <button class="btn-sm btn-reset" onclick="resetUsedSpins()">🔄 重置次数</button>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-warning" onclick="addPrize()">➕ 添加奖项</button>
+                <button class="btn btn-success" onclick="saveSettings()">💾 保存并应用</button>
+                <button class="btn btn-primary" onclick="resetDefault()">🔄 恢复默认</button>
+            </div>
+            <p class="tip">💡 提示：图片URL可以是 https:// 开头的图片链接，奖项较多时图片会自动缩小。快速点击标题3次可打开管理面板。</p>
+        </div>
+    </div>
+
+    <!-- 密码验证弹窗 -->
+    <div class="password-modal" id="passwordModal">
+        <div class="password-content">
+            <h3>🔐 请输入管理员密码</h3>
+            <input type="password" id="passwordInput" placeholder="输入密码" onkeypress="if(event.key==='Enter')checkPassword()">
+            <br>
+            <button class="btn btn-primary" onclick="checkPassword()">确认</button>
+            <button class="btn" onclick="closePasswordModal()" style="background:#ddd;">取消</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== 常量与配置 ====================
+            const ADMIN_PASSWORD = 'admin123';
+            const TRANSITION_DURATION = 5000;
+            const MIN_SPIN_LOOPS = 7;
+            const MAX_EXTRA_LOOPS = 4;
+
+            // 隐蔽的已使用次数存储键名
+            const USED_SPINS_KEY = '_r_s_c';
+
+            // ==================== DOM 元素引用 ====================
+            const canvas = document.getElementById('wheel');
+            const ctx = canvas.getContext('2d');
+            const spinBtn = document.getElementById('spinBtn');
+            const resultEl = document.getElementById('result');
+            const adminPanel = document.getElementById('adminPanel');
+            const prizeList = document.getElementById('prizeList');
+            const passwordModal = document.getElementById('passwordModal');
+            const passwordInput = document.getElementById('passwordInput');
+            const title = document.getElementById('title');
+            const wheelContainer = document.getElementById('wheelContainer');
+            const maxSpinsInput = document.getElementById('maxSpinsInput');
+            const usedSpinsDisplay = document.getElementById('usedSpinsDisplay');
+
+            // ==================== 默认奖项配置（全新奖品列表）====================
+const defaultPrizes = [
+    { name: '肥牛卷', weight: 1, image: '' },
+    { name: '肥羊卷', weight: 1, image: '' },
+    { name: '乌鸡卷', weight: 1, image: '' },
+    { name: '鱼丸', weight: 1, image: '' },
+    { name: '毛肚', weight: 1, image: '' },
+    { name: '虾滑', weight: 1, image: '' },
+];
+            const DEFAULT_MAX_SPINS = 0; // 0 表示不限制
+
+            // ==================== 颜色配置 ====================
+            const colors = [
+                '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+                '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
+                '#FF8C42', '#A29BFE', '#FD79A8', '#00B894',
+                '#E17055', '#00CEC9', '#6C5CE7', '#FDCB6E',
+                '#E84393', '#00B4DB', '#F093FB', '#434343',
+                '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3',
+                '#FF6B6B', '#C8D6E5', '#FF9F43', '#10AC84',
+                '#EE5A6F', '#48DBFB', '#8854D0', '#32FF7E'
+            ];
+
+            // ==================== 状态变量 ====================
+            let prizes = [];
+            let maxSpins = DEFAULT_MAX_SPINS;
+            let usedSpins = 0;
+            let loadedImages = {};
+            let currentRotation = 0;
+            let isSpinning = false;
+            let spinTimeoutId = null;
+
+            // ==================== 已使用次数管理 ====================
+            function loadUsedSpins() {
+                try {
+                    const val = localStorage.getItem(USED_SPINS_KEY);
+                    if (val !== null) {
+                        const parsed = parseInt(val, 10);
+                        usedSpins = isNaN(parsed) ? 0 : Math.max(0, parsed);
+                    } else {
+                        usedSpins = 0;
+                    }
+                } catch (e) {
+                    usedSpins = 0;
+                }
+            }
+
+            function saveUsedSpins() {
+                try {
+                    localStorage.setItem(USED_SPINS_KEY, String(usedSpins));
+                } catch (e) {
+                    // localStorage 不可用，静默处理
+                }
+            }
+
+            function incrementUsedSpins() {
+                usedSpins++;
+                saveUsedSpins();
+                updateButtonState();
+                if (adminPanel.classList.contains('active')) {
+                    updateUsedSpinsDisplay();
+                }
+            }
+
+            function resetUsedSpins() {
+                usedSpins = 0;
+                saveUsedSpins();
+                updateButtonState();
+                updateUsedSpinsDisplay();
+                const display = document.getElementById('usedSpinsDisplay');
+                if (display) {
+                    display.style.transform = 'scale(1.4)';
+                    display.style.transition = 'transform 0.3s ease';
+                    setTimeout(() => {
+                        display.style.transform = 'scale(1)';
+                    }, 300);
+                }
+            }
+
+            function updateUsedSpinsDisplay() {
+                const display = document.getElementById('usedSpinsDisplay');
+                if (display) {
+                    display.textContent = usedSpins;
+                }
+            }
+
+            function updateButtonState() {
+                if (maxSpins > 0 && usedSpins >= maxSpins && !isSpinning) {
+                    spinBtn.disabled = true;
+                } else if (!isSpinning) {
+                    spinBtn.disabled = false;
+                }
+            }
+
+            function isSpinLimitReached() {
+                return maxSpins > 0 && usedSpins >= maxSpins;
+            }
+
+            // ==================== 图片加载 ====================
+            function loadImage(url) {
+                return new Promise((resolve) => {
+                    if (loadedImages[url]) {
+                        resolve(loadedImages[url]);
+                        return;
+                    }
+                    if (!url || url.trim() === '') {
+                        resolve(null);
+                        return;
+                    }
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        loadedImages[url] = img;
+                        resolve(img);
+                    };
+                    img.onerror = () => resolve(null);
+                    img.src = url;
+                });
+            }
+
+            async function loadAllImages() {
+                const currentUrls = new Set(prizes.map(p => p.image).filter(Boolean));
+                for (const url of Object.keys(loadedImages)) {
+                    if (!currentUrls.has(url)) {
+                        delete loadedImages[url];
+                    }
+                }
+                const promises = prizes.map(p => loadImage(p.image));
+                await Promise.all(promises);
+            }
+
+            // ==================== Canvas 响应式尺寸 ====================
+            function updateCanvasSize() {
+                const containerWidth = wheelContainer.clientWidth;
+                const size = Math.max(280, Math.min(500, containerWidth));
+                if (canvas.width !== size || canvas.height !== size) {
+                    canvas.width = size;
+                    canvas.height = size;
+                    drawWheel();
+                }
+            }
+
+            // ==================== 绘制转盘 ====================
+            function drawWheel() {
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const radius = canvas.width / 2 - 10;
+                const sliceAngle = (2 * Math.PI) / prizes.length;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const fontSize = Math.max(9, Math.min(18, 160 / prizes.length + 6));
+                const imgSize = Math.max(14, Math.min(35, 120 / prizes.length + 10));
+
+                prizes.forEach((prize, index) => {
+                    const startAngle = index * sliceAngle - Math.PI / 2;
+                    const endAngle = startAngle + sliceAngle;
+                    const midAngle = startAngle + sliceAngle / 2;
+
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                    ctx.closePath();
+                    ctx.fillStyle = colors[index % colors.length];
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                    ctx.closePath();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([4, 8]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    ctx.save();
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate(midAngle);
+
+                    const img = loadedImages[prize.image];
+                    const textYOffset = (img && prizes.length <= 20) ? imgSize + 8 : 0;
+
+                    if (img && prizes.length <= 25) {
+                        const imgX = radius - imgSize - 25;
+                        ctx.save();
+                        const rx = imgX;
+                        const ry = -imgSize / 2;
+                        const rw = imgSize;
+                        const rh = imgSize;
+                        const cr = Math.min(4, imgSize / 5);
+                        ctx.beginPath();
+                        ctx.moveTo(rx + cr, ry);
+                        ctx.lineTo(rx + rw - cr, ry);
+                        ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + cr);
+                        ctx.lineTo(rx + rw, ry + rh - cr);
+                        ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - cr, ry + rh);
+                        ctx.lineTo(rx + cr, ry + rh);
+                        ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - cr);
+                        ctx.lineTo(rx, ry + cr);
+                        ctx.quadraticCurveTo(rx, ry, rx + cr, ry);
+                        ctx.closePath();
+                        ctx.clip();
+                        ctx.drawImage(img, rx, ry, rw, rh);
+                        ctx.restore();
+                    }
+
+                    ctx.textAlign = 'right';
+                    ctx.fillStyle = '#fff';
+                    ctx.font = `bold ${fontSize}px "Microsoft YaHei","PingFang SC",sans-serif`;
+                    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+                    ctx.shadowBlur = 3;
+
+                    let text = prize.name;
+                    const maxWidth = radius - 70;
+                    if (ctx.measureText(text).width > maxWidth) {
+                        while (ctx.measureText(text + '…').width > maxWidth && text.length > 1) {
+                            text = text.slice(0, -1);
+                        }
+                        text += '…';
+                    }
+                    ctx.fillText(text, radius - 15, fontSize / 3 + textYOffset);
+                    ctx.restore();
+                });
+            }
+
+            // ==================== 加权随机算法 ====================
+            function getWeightedRandomIndex() {
+                const validPrizes = prizes
+                    .map((p, i) => ({ ...p, index: i }))
+                    .filter(p => p.weight > 0);
+                if (validPrizes.length === 0) {
+                    return Math.floor(Math.random() * prizes.length);
+                }
+                const totalWeight = validPrizes.reduce((sum, p) => sum + p.weight, 0);
+                let random = Math.random() * totalWeight;
+                for (let i = 0; i < validPrizes.length; i++) {
+                    random -= validPrizes[i].weight;
+                    if (random <= 0) {
+                        return validPrizes[i].index;
+                    }
+                }
+                return validPrizes[validPrizes.length - 1].index;
+            }
+
+            // ==================== 核心：旋转逻辑 ====================
+            function spin() {
+                if (isSpinning) return;
+                if (prizes.length < 2) {
+                    alert('至少需要2个奖项才能抽奖！');
+                    return;
+                }
+
+                if (isSpinLimitReached()) {
+                    alert('抱歉，您的抽奖次数已用完。');
+                    spinBtn.disabled = true;
+                    return;
+                }
+
+                isSpinning = true;
+                spinBtn.disabled = true;
+                spinBtn.textContent = '旋转中';
+                wheelContainer.classList.add('spinning');
+                resultEl.innerHTML = '<span>🎰 转动中...</span>';
+                resultEl.classList.remove('win');
+
+                if (spinTimeoutId) {
+                    clearTimeout(spinTimeoutId);
+                    spinTimeoutId = null;
+                }
+
+                const winningIndex = getWeightedRandomIndex();
+                incrementUsedSpins();
+
+                const singleDeg = 360 / prizes.length;
+                const targetOffset = winningIndex * singleDeg + singleDeg / 2;
+                const baseTarget = -targetOffset;
+                const minLoops = MIN_SPIN_LOOPS + Math.random() * MAX_EXTRA_LOOPS;
+                let adjustedTarget = baseTarget;
+                while (adjustedTarget > currentRotation - minLoops * 360) {
+                    adjustedTarget -= 360;
+                }
+
+                canvas.style.transform = `rotate(${adjustedTarget}deg)`;
+                const finalTarget = adjustedTarget;
+                const finalWinningIndex = winningIndex;
+
+                function onSpinComplete() {
+                    if (spinTimeoutId) {
+                        clearTimeout(spinTimeoutId);
+                        spinTimeoutId = null;
+                    }
+                    canvas.removeEventListener('transitionend', onTransitionEnd);
+                    currentRotation = finalTarget;
+
+                    const prize = prizes[finalWinningIndex];
+                    let html = '';
+                    if (prize.image && loadedImages[prize.image]) {
+                        html += `<img src="${prize.image}" alt="${escapeHTML(prize.name)}">`;
+                    }
+                    html += `
+                        <div class="prize-text">
+                            <span class="prize-label">🎉 恭喜获得</span>
+                            <span class="prize-name">${escapeHTML(prize.name)}</span>
+                        </div>`;
+                    resultEl.innerHTML = html;
+                    resultEl.classList.add('win');
+
+                    isSpinning = false;
+                    spinBtn.textContent = '抽奖';
+                    wheelContainer.classList.remove('spinning');
+                    updateButtonState();
+                }
+
+                function onTransitionEnd(e) {
+                    if (e.propertyName === 'transform') {
+                        onSpinComplete();
+                    }
+                }
+
+                canvas.addEventListener('transitionend', onTransitionEnd);
+                spinTimeoutId = setTimeout(() => {
+                    console.warn('⚠️ transitionend 超时未触发，使用回退机制');
+                    onSpinComplete();
+                }, TRANSITION_DURATION + 800);
+            }
+
+            // ==================== 本地存储 ====================
+            function loadSettings() {
+                loadUsedSpins();
+
+                const saved = localStorage.getItem('roulette_prizes_v2');
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        if (Array.isArray(parsed)) {
+                            prizes = parsed;
+                            maxSpins = DEFAULT_MAX_SPINS;
+                        } else if (parsed && typeof parsed === 'object') {
+                            prizes = parsed.prizes || [];
+                            maxSpins = (typeof parsed.maxSpins === 'number' && parsed.maxSpins >= 0) ?
+                                parsed.maxSpins : DEFAULT_MAX_SPINS;
+                        } else {
+                            throw new Error('Invalid data format');
+                        }
+                        if (!Array.isArray(prizes) || prizes.length < 2) {
+                            throw new Error('Invalid prizes data');
+                        }
+                    } catch (e) {
+                        prizes = JSON.parse(JSON.stringify(defaultPrizes));
+                        maxSpins = DEFAULT_MAX_SPINS;
+                    }
+                } else {
+                    prizes = JSON.parse(JSON.stringify(defaultPrizes));
+                    maxSpins = DEFAULT_MAX_SPINS;
+                }
+
+                currentRotation = 0;
+                canvas.style.transform = 'rotate(0deg)';
+                updateButtonState();
+                loadAllImages().then(() => drawWheel());
+            }
+
+            function saveSettingsToStorage() {
+                const data = {
+                    prizes: prizes,
+                    maxSpins: maxSpins
+                };
+                localStorage.setItem('roulette_prizes_v2', JSON.stringify(data));
+            }
+
+            function saveSettings() {
+                const items = prizeList.querySelectorAll('.prize-item');
+                const newPrizes = [];
+
+                items.forEach(item => {
+                    const name = item.querySelector('.prize-name').value.trim();
+                    const weight = parseFloat(item.querySelector('.prize-weight').value) || 0;
+                    const image = item.querySelector('.prize-image').value.trim();
+                    if (name) {
+                        newPrizes.push({ name, weight: Math.max(0, weight), image });
+                    }
+                });
+
+                if (newPrizes.length < 2) {
+                    alert('至少需要2个奖项！');
+                    return;
+                }
+                if (newPrizes.length > 50) {
+                    alert('最多支持50个奖项！');
+                    return;
+                }
+
+                const newMaxSpins = parseInt(maxSpinsInput.value, 10);
+                maxSpins = (isNaN(newMaxSpins) || newMaxSpins < 0) ? 0 : newMaxSpins;
+
+                prizes = newPrizes;
+                saveSettingsToStorage();
+
+                currentRotation = 0;
+                canvas.style.transform = 'rotate(0deg)';
+                if (isSpinning) {
+                    isSpinning = false;
+                    spinBtn.textContent = '抽奖';
+                    wheelContainer.classList.remove('spinning');
+                    if (spinTimeoutId) {
+                        clearTimeout(spinTimeoutId);
+                        spinTimeoutId = null;
+                    }
+                }
+
+                updateButtonState();
+                loadAllImages().then(() => {
+                    drawWheel();
+                    closeAdmin();
+                    resultEl.innerHTML = '<span>✅ 设置已保存，点击开始抽奖</span>';
+                    resultEl.classList.remove('win');
+                });
+            }
+
+            function resetDefault() {
+                if (confirm('确定恢复默认奖项吗？当前设置将被覆盖。')) {
+                    prizes = JSON.parse(JSON.stringify(defaultPrizes));
+                    maxSpins = DEFAULT_MAX_SPINS;
+                    saveSettingsToStorage();
+                    resetUsedSpins();
+
+                    currentRotation = 0;
+                    canvas.style.transform = 'rotate(0deg)';
+                    if (isSpinning) {
+                        isSpinning = false;
+                        spinBtn.textContent = '抽奖';
+                        wheelContainer.classList.remove('spinning');
+                        if (spinTimeoutId) {
+                            clearTimeout(spinTimeoutId);
+                            spinTimeoutId = null;
+                        }
+                    }
+
+                    updateButtonState();
+                    renderPrizeList();
+                    loadAllImages().then(() => {
+                        drawWheel();
+                        resultEl.innerHTML = '<span>🔄 已恢复默认设置</span>';
+                        resultEl.classList.remove('win');
+                    });
+                }
+            }
+
+            // ==================== 管理面板 ====================
+            function renderPrizeList() {
+                prizeList.innerHTML = '';
+                prizes.forEach((prize) => {
+                    addPrizeItem(prize.name, prize.weight, prize.image || '');
+                });
+                updateTotalWeight();
+                if (maxSpinsInput) {
+                    maxSpinsInput.value = maxSpins;
+                }
+                updateUsedSpinsDisplay();
+            }
+
+            function addPrize() {
+                addPrizeItem('新奖项', 1, '');
+                updateTotalWeight();
+            }
+
+            function addPrizeItem(name, weight, image) {
+                const div = document.createElement('div');
+                div.className = 'prize-item';
+                div.innerHTML = `
+                    <img class="preview-img"
+                         src="${escapeHTML(image || '')}"
+                         alt="预览"
+                         onerror="this.style.display='none'"
+                         style="${image ? '' : 'display:none'}">
+                    <input type="text" class="prize-name" value="${escapeHTML(name)}" placeholder="奖项名称" maxlength="20">
+                    <label>权重</label>
+                    <input type="number" class="prize-weight" value="${weight}" min="0" step="0.1" onchange="updateTotalWeight()">
+                    <input type="text" class="prize-image img-url-input" value="${escapeHTML(image || '')}" placeholder="图片URL(可不填)"
+                           oninput="
+                               const preview = this.parentElement.querySelector('.preview-img');
+                               preview.src = this.value;
+                               preview.style.display = this.value ? 'block' : 'none';
+                           ">
+                    <button class="delete-btn" onclick="this.parentElement.remove();updateTotalWeight()">🗑 删除</button>
+                `;
+                prizeList.appendChild(div);
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function updateTotalWeight() {
+                const items = prizeList.querySelectorAll('.prize-weight');
+                let total = 0;
+                items.forEach(item => {
+                    total += parseFloat(item.value) || 0;
+                });
+                const twEl = document.getElementById('totalWeight');
+                if (twEl) {
+                    twEl.textContent = total.toFixed(1);
+                }
+            }
+
+            function onMaxSpinsChange() {
+                const val = parseInt(maxSpinsInput.value, 10);
+                if (isNaN(val) || val < 0) {
+                    maxSpinsInput.value = 0;
+                }
+            }
+
+            function openAdmin() {
+                renderPrizeList();
+                if (maxSpinsInput) {
+                    maxSpinsInput.value = maxSpins;
+                }
+                updateUsedSpinsDisplay();
+                adminPanel.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeAdmin() {
+                adminPanel.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            // ==================== 密码验证 ====================
+            let titleClickCount = 0;
+            let titleClickTimer = null;
+
+            title.addEventListener('click', () => {
+                titleClickCount++;
+                if (titleClickTimer) clearTimeout(titleClickTimer);
+                if (titleClickCount >= 3) {
+                    titleClickCount = 0;
+                    showPasswordModal();
+                } else {
+                    titleClickTimer = setTimeout(() => {
+                        titleClickCount = 0;
+                    }, 600);
+                }
+            });
+
+            function showPasswordModal() {
+                passwordModal.classList.add('active');
+                passwordInput.value = '';
+                setTimeout(() => passwordInput.focus(), 100);
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closePasswordModal() {
+                passwordModal.classList.remove('active');
+                if (!adminPanel.classList.contains('active')) {
+                    document.body.style.overflow = '';
+                }
+            }
+
+            function checkPassword() {
+                if (passwordInput.value === ADMIN_PASSWORD) {
+                    closePasswordModal();
+                    openAdmin();
+                } else {
+                    passwordInput.style.borderColor = '#ff4757';
+                    passwordInput.style.animation = 'shake 0.5s ease';
+                    setTimeout(() => {
+                        passwordInput.style.borderColor = '#ddd';
+                        passwordInput.style.animation = '';
+                    }, 500);
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            }
+
+            // ==================== 事件绑定 ====================
+            spinBtn.addEventListener('click', spin);
+
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' && !isSpinning &&
+                    !adminPanel.classList.contains('active') &&
+                    !passwordModal.classList.contains('active') &&
+                    document.activeElement === document.body) {
+                    e.preventDefault();
+                    spin();
+                }
+            });
+
+            adminPanel.addEventListener('click', (e) => {
+                if (e.target === adminPanel) closeAdmin();
+            });
+            passwordModal.addEventListener('click', (e) => {
+                if (e.target === passwordModal) closePasswordModal();
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    if (adminPanel.classList.contains('active')) {
+                        closeAdmin();
+                    } else if (passwordModal.classList.contains('active')) {
+                        closePasswordModal();
+                    }
+                }
+            });
+
+            let resizeDebounceTimer;
+            window.addEventListener('resize', () => {
+                if (resizeDebounceTimer) clearTimeout(resizeDebounceTimer);
+                resizeDebounceTimer = setTimeout(() => {
+                    updateCanvasSize();
+                }, 250);
+            });
+
+            // ==================== 暴露全局函数 ====================
+            window.closeAdmin = closeAdmin;
+            window.closePasswordModal = closePasswordModal;
+            window.checkPassword = checkPassword;
+            window.addPrize = addPrize;
+            window.saveSettings = saveSettings;
+            window.resetDefault = resetDefault;
+            window.updateTotalWeight = updateTotalWeight;
+            window.onMaxSpinsChange = onMaxSpinsChange;
+            window.resetUsedSpins = resetUsedSpins;
+
+            // ==================== 初始化 ====================
+            function init() {
+                loadSettings();
+                updateCanvasSize();
+                spinBtn.textContent = '抽奖';
+                resultEl.innerHTML = '<span>👆 点击中间按钮开始抽奖</span>';
+                updateButtonState();
+            }
+
+            init();
+        })();
+    </script>
+</body>
+</html>
